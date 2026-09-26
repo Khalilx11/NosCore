@@ -36,13 +36,12 @@ namespace NosCore.GameObject.Services.SkillService
             await SendSkillListAsync(character, useSpecialist: false);
         }
 
-        private const int PyjamaSpecialistClass = 32;
 
         public async Task LoadSpecialistSkillsAsync(ICharacterEntity character, short morph, byte spLevel)
         {
             RemoveSpecialistSkills(character);
 
-            foreach (var skill in skills.Where(s => s.Class >= PyjamaSpecialistClass
+            foreach (var skill in skills.Where(s => s.Class >= SkillRequirements.FirstSpecialistClass
                                                     && s.UpgradeType == morph
                                                     && s.LevelMinimum <= spLevel))
             {
@@ -68,7 +67,7 @@ namespace NosCore.GameObject.Services.SkillService
         private static void RemoveSpecialistSkills(ICharacterEntity character)
         {
             foreach (var entry in character.Skills
-                         .Where(s => s.Value.Skill?.Class >= PyjamaSpecialistClass)
+                         .Where(s => s.Value.Skill?.Class >= SkillRequirements.FirstSpecialistClass)
                          .ToList())
             {
                 character.Skills.TryRemove(entry.Key, out _);
@@ -78,7 +77,7 @@ namespace NosCore.GameObject.Services.SkillService
         private async Task SendSkillListAsync(ICharacterEntity character, bool useSpecialist)
         {
             var ordered = character.Skills.Values
-                .Where(s => s.Skill != null && (s.Skill!.Class >= PyjamaSpecialistClass) == useSpecialist)
+                .Where(s => s.Skill != null && (s.Skill!.Class >= SkillRequirements.FirstSpecialistClass) == useSpecialist)
                 .OrderBy(s => s.Skill!.CastId)
                 .Select(s => s.SkillVNum)
                 .ToList();
@@ -99,36 +98,9 @@ namespace NosCore.GameObject.Services.SkillService
             }).ConfigureAwait(false);
         }
 
-        /// <summary>
-        /// The Adventurer's skills, listed one by one.
-        ///
-        /// <b>They cannot be selected by class like every other one</b>, and that is this table's
-        /// trap: class 0 does not mean "Adventurer", it is the scrap container where 193 entries
-        /// end up - the emotes, the stat courses, the shop and rest actions, passives. Filtering
-        /// by class 0 gave an Adventurer <i>all</i> of them, and the bar filled with icons the
-        /// client will not cast.
-        ///
-        /// The range is 200 to 210 inclusive. 209 is in it: Skill.dat gives it class 0, cast id
-        /// 16, LevelMinimum 1 and the name Capture - it is the Adventurer's pet catcher, which is
-        /// why CharNewPacketHandler grants it to every new character and why its comment there
-        /// talks about <c>u_s 16</c>. Left out, an Adventurer cannot catch anything.
-        ///
-        /// 211 and 212 are excluded on purpose: the file calls them "Ultra Super Cheating Skill"
-        /// and "Admin Cheating Skill".
-        ///
-        /// Open, and deliberately not guessed at: 300 to 306 are also class 0, with LevelMinimum
-        /// 10 to 18 and names like "Strengthen Swing". They look like the upgraded forms of
-        /// 200-206 and they carry the SAME cast ids, so they cannot simply be added alongside.
-        /// Nothing in the files says how one replaces the other, so they stay out until it does.
-        /// </summary>
-        private static readonly short[] AdventurerSkills =
-            { 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210 };
-
         /// <summary>The skills this class can hold.</summary>
         private IEnumerable<SkillDto> Learnable(ICharacterEntity character) =>
-            character.Class == CharacterClassType.Adventurer
-                ? skills.Where(s => AdventurerSkills.Contains(s.SkillVNum))
-                : skills.Where(s => s.Class == (byte)character.Class);
+            skills.Where(s => SkillRequirements.IsLearnableBy(s, character.Class));
 
         /// <summary>
         /// A class change was only half done. The change empties the in-memory list and learns the
@@ -151,7 +123,7 @@ namespace NosCore.GameObject.Services.SkillService
         public async Task ForgetUnlearnableSkillsAsync(ICharacterEntity character)
         {
             var keep = Learnable(character)
-                .Where(skill => skill.LevelMinimum <= character.JobLevel)
+                .Where(skill => SkillRequirements.IsUnlockedAt(skill, character.JobLevel))
                 .Select(skill => skill.SkillVNum)
                 .ToHashSet();
             var characterId = character.VisualId;
@@ -168,7 +140,7 @@ namespace NosCore.GameObject.Services.SkillService
         {
             var classByte = (byte)character.Class;
             var learned = false;
-            foreach (var skill in Learnable(character).Where(s => s.LevelMinimum <= character.JobLevel))
+            foreach (var skill in Learnable(character).Where(s => SkillRequirements.IsUnlockedAt(s, character.JobLevel)))
             {
                 if (character.Skills.ContainsKey(skill.SkillVNum))
                 {

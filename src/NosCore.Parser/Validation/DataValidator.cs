@@ -39,6 +39,8 @@ namespace NosCore.Parser.Validation
     // Reports what an import left behind; it never repairs or drops anything.
     public static class DataValidator
     {
+        private const byte MaxLevel = 99;
+
         public static IReadOnlyList<DataIssue> Validate(ImportedData data)
         {
             var issues = new List<DataIssue>();
@@ -70,6 +72,11 @@ namespace NosCore.Parser.Validation
                 {
                     Range(issues, "Drop", drop.DropId, $"amount {drop.Amount} and chance {drop.DropChance} must both be positive");
                 }
+            }
+
+            foreach (var skill in data.Skills.Where(s => s.LevelMinimum > MaxLevel))
+            {
+                Range(issues, "Skill", skill.SkillVNum, $"unlock level {skill.LevelMinimum} is above the highest level {MaxLevel}");
             }
 
             foreach (var link in data.NpcMonsterSkills)

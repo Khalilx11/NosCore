@@ -191,6 +191,19 @@ namespace NosCore.Parser.Tests
             Assert.AreEqual(DataIssueKind.BlockedCoordinate, issues[0].Kind);
         }
 
+
+        [TestMethod]
+        public void ASkillUnlockedAboveTheHighestLevelIsOutOfRange()
+        {
+            var issues = DataValidator.Validate(Data(skills: new[]
+            {
+                new SkillDto { SkillVNum = 800, LevelMinimum = 247 },
+                new SkillDto { SkillVNum = 200, LevelMinimum = 99 },
+            }));
+
+            Assert.AreEqual(1, issues.Count);
+            Assert.AreEqual("800", issues[0].Key);
+        }
         [TestMethod]
         public void ValidationNeverChangesTheData()
         {
