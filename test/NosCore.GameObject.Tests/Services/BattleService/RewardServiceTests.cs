@@ -107,7 +107,7 @@ namespace NosCore.GameObject.Tests.Services.BattleService
         [TestMethod]
         public async Task ADropWithACertainChanceLandsWhereTheMonsterFell()
         {
-            MonsterDrops(DroppableVNum, chance: 10000);
+            MonsterDrops(DroppableVNum, chance: DropDefinition.ChanceScale);
 
             await _service.DistributeAsync(_monster, _first.Character, Damage(1, 1));
 
@@ -139,7 +139,7 @@ namespace NosCore.GameObject.Tests.Services.BattleService
         [TestMethod]
         public async Task NothingIsRewardedWhenNobodyDamagedTheMonster()
         {
-            MonsterDrops(DroppableVNum, chance: 10000);
+            MonsterDrops(DroppableVNum, chance: DropDefinition.ChanceScale);
 
             await _service.DistributeAsync(_monster, _first.Character, new Dictionary<Entity, int>());
 

@@ -159,23 +159,20 @@ public sealed class RewardService(
 
     private async Task SpawnDropsAsync(IAliveEntity victim, NpcMonsterDto mob, Services.MapInstanceGenerationService.MapInstance mapInstance)
     {
-        foreach (var drop in catalog.GetDrops(mob.NpcMonsterVNum))
+        foreach (var drop in catalog.GetDrops(mob.NpcMonsterVNum).Select(DropDefinition.From))
         {
-            // DropChance is expressed per 10000 (i.e. 2000 means 20%). Scale by the map's
-            // drop rate so GM-configured rates apply uniformly.
-            var roll = RandomHelper.Instance.RandomNumber(0, 10000);
-            var threshold = drop.DropChance * mapInstance.DropRate;
-            if (roll >= threshold) continue;
+            var roll = RandomHelper.Instance.RandomNumber(0, DropDefinition.ChanceScale);
+            if (!drop.Lands(roll, mapInstance.DropRate)) continue;
 
             try
             {
-                var item = itemGenerationService.Create(drop.VNum, (short)drop.Amount);
+                var item = itemGenerationService.Create(drop.ItemVNum, (short)drop.Amount);
                 var dropped = mapItemGenerationService.Create(mapInstance, item, victim.PositionX, victim.PositionY);
                 await mapInstance.SendPacketAsync(dropped.GenerateDrop());
             }
             catch (System.Exception ex)
             {
-                logger.LogWarning(ex, "Failed to spawn drop {VNum} from {Mob}", drop.VNum, mob.NpcMonsterVNum);
+                logger.LogWarning(ex, "Failed to spawn drop {VNum} from {Mob}", drop.ItemVNum, mob.NpcMonsterVNum);
             }
         }
     }
