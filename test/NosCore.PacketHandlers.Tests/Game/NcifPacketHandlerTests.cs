@@ -228,7 +228,7 @@ namespace NosCore.PacketHandlers.Tests.Game
         private void MonsterIsOnMap()
         {
             Session.Character.MapInstance.LoadMonsters(
-                new List<MapMonsterDto> { new() { MapMonsterId = 200, MapId = 0, MapX = 1, MapY = 1, VNum = 1 } },
+                new List<MapMonsterDto> { new() { MapMonsterId = 200, MapId = 0, MapX = 0, MapY = 0, VNum = 1 } },
                 new List<NpcMonsterDto> { new() { NpcMonsterVNum = 1, MaxHp = 100, MaxMp = 50, Level = 5 } });
         }
 

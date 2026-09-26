@@ -294,23 +294,31 @@ namespace NosCore.GameObject.Services.MapInstanceGenerationService
 
         public void LoadMonsters(List<MapMonsterDto> monsters, List<NpcMonsterDto> npcMonsters)
         {
-            var entries = new Dictionary<int, MonsterComponentBundle>();
-            foreach (var x in monsters)
+            var templates = new Dictionary<short, NpcMonsterDto>();
+            foreach (var template in npcMonsters)
             {
-                var npcMonster = npcMonsters.Find(o => o.NpcMonsterVNum == x.VNum);
-                if (npcMonster == null)
+                templates.TryAdd(template.NpcMonsterVNum, template);
+            }
+
+            var entries = new Dictionary<int, MonsterComponentBundle>();
+            foreach (var spawn in monsters.Select(MonsterSpawnDefinition.From))
+            {
+                templates.TryGetValue(spawn.MonsterVNum, out var npcMonster);
+                if (spawn.Check(npcMonster, Map) is { } refusal)
                 {
+                    _logger.LogWarning("Monster spawn {MapMonsterId} of monster {VNum} on map {MapId} is not loaded: {Refusal}",
+                        spawn.MapMonsterId, spawn.MonsterVNum, Map.MapId, refusal);
                     continue;
                 }
 
                 var entity = EcsWorld.CreateMonster(
-                    x.MapMonsterId,
-                    npcMonster,
+                    spawn.MapMonsterId,
+                    npcMonster!,
                     this,
-                    x.MapX, x.MapY, x.Direction,
-                    x.MapX, x.MapY,
-                    npcMonster.CanWalk, false, x.IsDisabled);
-                entries[x.MapMonsterId] = new MonsterComponentBundle(entity, EcsWorld);
+                    spawn.X, spawn.Y, spawn.Direction,
+                    spawn.X, spawn.Y,
+                    npcMonster!.CanWalk, false, spawn.IsDisabled);
+                entries[spawn.MapMonsterId] = new MonsterComponentBundle(entity, EcsWorld);
             }
             _monsters = new ConcurrentDictionary<int, MonsterComponentBundle>(entries);
         }

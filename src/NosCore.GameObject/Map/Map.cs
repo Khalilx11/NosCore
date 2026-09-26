@@ -4,7 +4,7 @@
 // |_|\__|\__/ |___/ \__/\__/|_|_\___|
 //
 
-using NosCore.Data.Enumerations.Map;
+using NosCore.Data.Grid;
 using NosCore.Data.StaticEntities;
 using NosCore.PathFinder.Interfaces;
 using NosCore.Shared.Helpers;
@@ -112,23 +112,13 @@ namespace NosCore.GameObject.Map
 
         public bool IsWalkable(short mapX, short mapY)
         {
-            return IsInside(mapX, mapY) && !HasFlag(mapX, mapY, MapCellFlags.WalkingDisabled);
+            return MapGrid.IsWalkable(Data, Width, Height, mapX, mapY);
         }
 
         // Cells where monsters do not notice anybody (safe zones).
         public bool IsMonsterAggroDisabled(short mapX, short mapY)
         {
-            return IsInside(mapX, mapY) && HasFlag(mapX, mapY, MapCellFlags.MonsterAggroDisabled);
-        }
-
-        private bool IsInside(short mapX, short mapY)
-        {
-            return (mapX >= 0) && (mapX < Width) && (mapY >= 0) && (mapY < Height);
-        }
-
-        private bool HasFlag(short mapX, short mapY, MapCellFlags flag)
-        {
-            return ((MapCellFlags)this[mapX, mapY] & flag) != 0;
+            return MapGrid.IsMonsterAggroDisabled(Data, Width, Height, mapX, mapY);
         }
     }
 }

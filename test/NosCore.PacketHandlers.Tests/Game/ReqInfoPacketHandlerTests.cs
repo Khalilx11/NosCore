@@ -192,8 +192,8 @@ namespace NosCore.PacketHandlers.Tests.Game
                     {
                         MapMonsterId = 2848,
                         MapId = Session.Character.MapInstance.Map.MapId,
-                        MapX = 3,
-                        MapY = 3,
+                        MapX = 0,
+                        MapY = 0,
                         VNum = 25,
                     }
                 },

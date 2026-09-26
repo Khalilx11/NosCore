@@ -5,7 +5,7 @@
 //
 
 using NosCore.Data.Dto;
-using NosCore.Data.Enumerations.Map;
+using NosCore.Data.Grid;
 using NosCore.Data.StaticEntities;
 using System;
 using System.Collections.Generic;
@@ -193,15 +193,15 @@ namespace NosCore.Parser.Validation
                 return;
             }
 
-            var width = BitConverter.ToInt16(data, 0);
-            var height = BitConverter.ToInt16(data, 2);
-            if (x < 0 || y < 0 || x >= width || y >= height)
+            var width = MapGrid.Width(data);
+            var height = MapGrid.Height(data);
+            if (!MapGrid.IsInside(width, height, x, y))
             {
                 Range(issues, table, key, $"({x},{y}) is outside map {mapId} ({width}x{height})");
                 return;
             }
 
-            if (((MapCellFlags)data[4 + y * width + x] & MapCellFlags.WalkingDisabled) != 0)
+            if (!MapGrid.IsWalkable(data, width, height, x, y))
             {
                 issues.Add(new DataIssue(DataIssueKind.BlockedCoordinate, table, key.ToString(), $"({x},{y}) on map {mapId} is a cell nobody can walk on"));
             }
