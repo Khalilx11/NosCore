@@ -6,13 +6,14 @@
 
 namespace NosCore.Parser;
 
-public sealed record ParserCliOptions(string? Folder)
+public sealed record ParserCliOptions(string? Folder, bool ValidateOnly = false)
 {
     public bool HasFolder => !string.IsNullOrWhiteSpace(Folder);
 
     public static ParserCliOptions Parse(string[] args)
     {
         string? folder = null;
+        var validateOnly = false;
         for (var i = 0; i < args.Length; i++)
         {
             var arg = args[i];
@@ -24,7 +25,11 @@ public sealed record ParserCliOptions(string? Folder)
             {
                 folder = arg["--folder=".Length..];
             }
+            else if (arg == "--validate")
+            {
+                validateOnly = true;
+            }
         }
-        return new ParserCliOptions(folder);
+        return new ParserCliOptions(folder, validateOnly);
     }
 }

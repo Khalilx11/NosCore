@@ -72,6 +72,7 @@ namespace NosCore.Parser
                 .AsSelf();
 
             containerBuilder.RegisterType<ImportFactory>();
+            containerBuilder.RegisterType<Validation.DataValidationService>();
             var registerDatabaseObject = typeof(ParserBootstrap).GetMethod(nameof(RegisterDatabaseObject));
 
             foreach (var mapping in Database.Hosting.PersistenceModule.DiscoverDaoMappings())

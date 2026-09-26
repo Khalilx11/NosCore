@@ -1,4 +1,4 @@
-﻿//  __  _  __    __   ___ __  ___ ___
+//  __  _  __    __   ___ __  ___ ___
 // |  \| |/__\ /' _/ / _//__\| _ \ __|
 // | | ' | \/ |`._`.| \_| \/ | v / _|
 // |_|\__|\__/ |___/ \__/\__/|_|_\___|
@@ -138,6 +138,14 @@ namespace NosCore.Parser
         public async Task ImportPacketsAsync()
         {
             var filePacket = $"{_folder}{Path.DirectorySeparatorChar}packet.txt";
+            if (!File.Exists(filePacket))
+            {
+                loggerFactory.CreateLogger<ImportFactory>().LogWarning(
+                    "{File} not found: portals, map npcs, map monsters, shops, shop items and scripted instances are read from it and are skipped. The client's own data holds no placement of these.",
+                    filePacket);
+                return;
+            }
+
             using var packetTxtStream =
                 new StreamReader(filePacket, Encoding.Default);
             var lines = (await packetTxtStream.ReadToEndAsync()).Split(

@@ -6,6 +6,7 @@
 
 using Microsoft.Extensions.Hosting;
 using NosCore.Data.Enumerations.I18N;
+using NosCore.Parser.Validation;
 using NosCore.Shared.I18N;
 using Microsoft.Extensions.Logging;
 using System;
@@ -20,13 +21,20 @@ namespace NosCore.Parser
         ILogger<Parser> logger,
         ILogLanguageLocalizer<LogLanguageKey> logLanguage,
         ParserCliOptions cli,
-        IHostApplicationLifetime lifetime)
+        IHostApplicationLifetime lifetime,
+        DataValidationService validation)
         : BackgroundService
     {
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             try
             {
+                if (cli.ValidateOnly)
+                {
+                    validation.Run();
+                    return;
+                }
+
                 if (cli.HasFolder)
                 {
                     await RunNonInteractiveAsync(cli.Folder!, stoppingToken).ConfigureAwait(false);
@@ -45,7 +53,7 @@ namespace NosCore.Parser
             }
             finally
             {
-                if (cli.HasFolder)
+                if (cli.HasFolder || cli.ValidateOnly)
                 {
                     lifetime.StopApplication();
                 }
@@ -113,6 +121,7 @@ namespace NosCore.Parser
             await factory.ImportShopItemsAsync().ConfigureAwait(false);
             await factory.ImportScriptsAsync().ConfigureAwait(false);
             await factory.ImportQuestsAsync().ConfigureAwait(false);
+            validation.Run();
         }
 
         private async Task RunPromptedImportsAsync()
