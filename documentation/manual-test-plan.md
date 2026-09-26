@@ -35,6 +35,42 @@ compute and will mask a regression.
 Both the item model and the instance count. A +0 and a +10 of the same vnum giving the
 same damage means only one of the two is being read.
 
+### Character stat window
+
+The server sends the stat window when the character enters a map, wears or removes
+something, and levels up.
+
+- [ ] Enter the world: the window already holds numbers, before anything was worn or
+      removed
+- [ ] Every figure of a fresh character equals its class and level base plus the worn
+      pieces' own columns. Work one out: main-weapon min/max, hit rate and crit chance
+      come from the weapon row, the three defences and the four resistances from the
+      armour, hat, gloves and boots
+- [ ] Wear or remove a piece: the window changes at once, without reopening it
+- [ ] Wear something the character may not: nothing changes and nothing is resent
+- [ ] Level up: the window shows the new level's base
+- [ ] A Mage's hit rate reads 0 and a Martial Artist's weapon kinds read as melee — see
+      "Not verifiable yet"
+
+### Monster damage
+
+- [ ] A monster's hit on a character is its own damage roll plus its level minus the
+      character's level, minus the character's defence — the same number a naked and a
+      geared character shows in the window explains the difference in damage taken
+- [ ] A monster does not gain any class bonus: the same monster hits an Adventurer and a
+      Swordsman of equal defence for the same amount
+
+### Loot
+
+Drop chances are in hundred-thousandths of a kill (14000 is 14 %), multiplied by the
+map's drop rate.
+
+- [ ] Kill a monster whose only drop is a 14000 row a hundred times: the item lands
+      roughly fourteen times, not every time
+- [ ] A row with a chance of 0 never lands
+- [ ] Gold and drops appear where the monster fell; picking them up raises the gold and
+      fills the inventory, and both are still there after logging out and back in
+
 ### Combo chains
 
 - [ ] With a class whose basic attack chains (skill 220 is the Swordsman's), attack the
@@ -134,6 +170,25 @@ distance the walk check uses.
 
 This one is easy to eyeball — before the fix everything came back a hundred times too fast.
 
+### Spawns and terrain
+
+A cell is walkable when its walking-disabled flag (0x01) is clear; 0x08 marks a cell where
+monsters do not start a fight on their own.
+
+- [ ] Nobody, monster or character, can be walked onto a cell whose value has the 0x01 bit
+      set (values 1, 3, 5 ...); cells of 2, 8, 10, 16, 18 and other even values are open
+- [ ] Stand on a cell with the 0x08 bit next to a hostile monster: it does not come for
+      you on its own, but still fights back when you hit it
+- [ ] A spawn on a blocked cell, off the map, or of a monster without health does not
+      appear, and the world log says why once at start-up
+
+### Monster skills
+
+- [ ] A monster's plain attack uses its own range, area and cooldown from its data row
+- [ ] A monster with linked skills sometimes casts one, from that skill's own reach, and
+      the hit carries the skill's vnum rather than a cast id
+- [ ] Two monsters with different skill lists never cast each other's skills
+
 ---
 
 ## Character
@@ -187,3 +242,14 @@ Recorded so nobody spends time hunting for them:
   yet, so neither the corrected curve nor the flattened packet field has a path to the
   client.
 - **Mates and instances** — same, still open.
+- **The Martial Artist's stat window** — which attack kind each of its two weapon slots
+  reports is not known, so it shows melee for both and there is nothing to compare it with.
+- **The stat window after a buff, an upgrade or a specialist transform** — the window is
+  not resent for those, so it can be behind until the next wear, removal or level-up.
+- **Specialist skills** — their unlock levels are corrupt in the imported data, so none can
+  be learned and there is nothing to cast.
+- **Where monsters stand outside Map 1** — the client data does not hold placement, so
+  there is nothing to walk to.
+- **Wearing a piece over an occupied slot, then logging out** — known to lose the swap:
+  the logout save of the two swapped rows fails. Log out between two separate wear
+  actions to avoid it while testing.
