@@ -63,60 +63,42 @@ public sealed class SkillResolver : ISkillResolver
         return BuildInfo(match.Skill!, upgrade, castId);
     }
 
-    private SkillInfo? ResolveNpc(INonPlayableEntity npc, long castId)
+    // For a monster or NPC the id is the vnum of one of its own skills, 0 being its basic attack
+    // (1043 of the 1108 monster skill links have cast id 0, so a cast id cannot tell its skills apart). The basic attack
+    // is built from the monster's own range, area, cooldown and damage; its BasicSkill column is an
+    // effect id of the client, not a skill.
+    private SkillInfo? ResolveNpc(INonPlayableEntity npc, long skillVnum)
     {
         var mob = npc.NpcMonster;
         if (mob == null) return null;
 
-        var resolvedSkill = ResolveNpcSkill(mob, castId);
-        if (resolvedSkill != null)
+        if (skillVnum == 0)
         {
-            return BuildInfo(resolvedSkill, null, castId);
+            return BasicAttack(mob);
         }
 
-        // No skill in the catalog and no BasicSkill vnum — but the monster still
-        // needs to hit. The overwhelming majority of low-level mobs fall here
-        // (melee wolf, rat, etc.) so we synthesise a minimal basic-attack SkillInfo
-        // from the monster's raw stats. Type/AttackClass match OpenNos Monster.AttackClass
-        // semantics (0 melee, 1 ranged, 2 magic), Range/Cooldown come from the
-        // NpcMonsterDto itself, and Damage comes from the min/max hit range via
-        // CombatStats — not via skill BCards.
-        return new SkillInfo(
-            SkillVnum: 0,
-            CastId: 0,
-            Cooldown: mob.BasicCooldown,
-            AttackAnimation: 0,
-            CastEffect: 0,
-            Effect: 0,
-            Type: mob.AttackClass,
-            HitType: TargetHitType.SingleTargetHit,
-            Range: mob.BasicRange,
-            TargetRange: mob.BasicArea,
-            TargetType: 1,
-            Element: mob.Element,
-            Duration: 0,
-            MpCost: 0,
-            BCards: System.Array.Empty<BCardDto>());
+        var linked = _catalog.GetSkills(mob.NpcMonsterVNum).Any(l => l.SkillVNum == skillVnum);
+        return linked && _skillsByVnum.TryGetValue((short)skillVnum, out var skill)
+            ? BuildInfo(skill, null, skillVnum)
+            : null;
     }
 
-    private SkillDto? ResolveNpcSkill(NpcMonsterDto mob, long castId)
-    {
-        // If the monster knows this skill vnum, use it; otherwise fall back to the
-        // monster's default attack. The fall-through covers the extremely common
-        // case where the AI just calls Resolve(mob, 0) to mean "basic attack".
-        foreach (var sk in _catalog.GetSkills(mob.NpcMonsterVNum))
-        {
-            if (_skillsByVnum.TryGetValue(sk.SkillVNum, out var s) && (s.CastId == castId || castId == 0))
-            {
-                return s;
-            }
-        }
-        if (mob.BasicSkill > 0 && _skillsByVnum.TryGetValue(mob.BasicSkill, out var basic))
-        {
-            return basic;
-        }
-        return null;
-    }
+    private static SkillInfo BasicAttack(NpcMonsterDto mob) => new(
+        SkillVnum: 0,
+        CastId: 0,
+        Cooldown: mob.BasicCooldown,
+        AttackAnimation: 0,
+        CastEffect: 0,
+        Effect: 0,
+        Type: mob.AttackClass,
+        HitType: TargetHitType.SingleTargetHit,
+        Range: mob.BasicRange,
+        TargetRange: mob.BasicArea,
+        TargetType: 1,
+        Element: mob.Element,
+        Duration: 0,
+        MpCost: 0,
+        BCards: System.Array.Empty<BCardDto>());
 
     private SkillInfo BuildInfo(SkillDto main, SkillDto? upgrade, long castId)
     {

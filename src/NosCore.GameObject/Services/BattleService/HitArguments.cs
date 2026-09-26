@@ -10,5 +10,6 @@ public record HitArguments()
 {
     public short? MapX { get; set; }
     public short? MapY { get; set; }
+    // A character's cast id; for a monster or NPC the vnum of one of its skills, 0 being its basic attack.
     public long SkillId { get; set; }
 }

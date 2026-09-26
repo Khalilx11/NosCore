@@ -79,5 +79,69 @@ namespace NosCore.GameObject.Tests.Services.BattleService
             var resolver = new SkillResolver(_skills, _catalog);
             Assert.IsNull(resolver.Resolve(character.Object, 999));
         }
+
+        private SkillResolver ResolverForAMonsterWith(NpcMonsterDto mob, params short[] linkedSkills)
+        {
+            var links = new List<NpcMonsterSkillDto>();
+            foreach (var skill in linkedSkills)
+            {
+                links.Add(new NpcMonsterSkillDto { NpcMonsterVNum = mob.NpcMonsterVNum, SkillVNum = skill });
+            }
+
+            return new SkillResolver(_skills, new NpcCombatCatalog(links, new(), new()));
+        }
+
+        private static INonPlayableEntity Monster(NpcMonsterDto mob)
+        {
+            var monster = new Mock<INonPlayableEntity>();
+            monster.SetupGet(m => m.NpcMonster).Returns(mob);
+            return monster.Object;
+        }
+
+        [TestMethod]
+        public void AMonstersBasicAttackIsBuiltFromItsOwnStatsNotFromItsFirstSkill()
+        {
+            var mob = new NpcMonsterDto { NpcMonsterVNum = 7, BasicRange = 3, BasicArea = 1, BasicCooldown = 12, AttackClass = 1 };
+            var resolver = ResolverForAMonsterWith(mob, 100, 200);
+
+            var basic = resolver.Resolve(Monster(mob), 0)!;
+
+            Assert.AreEqual((short)0, basic.SkillVnum);
+            Assert.AreEqual((byte)3, basic.Range);
+            Assert.AreEqual((byte)1, basic.TargetRange);
+            Assert.AreEqual((short)12, basic.Cooldown);
+            Assert.AreEqual((byte)1, basic.Type);
+        }
+
+        [TestMethod]
+        public void AMonsterSkillIsFoundByItsVnum()
+        {
+            var mob = new NpcMonsterDto { NpcMonsterVNum = 7 };
+            var resolver = ResolverForAMonsterWith(mob, 100, 200);
+
+            Assert.AreEqual((short)200, resolver.Resolve(Monster(mob), 200)!.SkillVnum);
+            Assert.AreEqual(TargetHitType.AoeTargetHit, resolver.Resolve(Monster(mob), 200)!.HitType);
+        }
+
+        [TestMethod]
+        public void AMonsterCannotUseASkillItDoesNotKnow()
+        {
+            var mob = new NpcMonsterDto { NpcMonsterVNum = 7 };
+            var resolver = ResolverForAMonsterWith(mob, 100);
+
+            Assert.IsNull(resolver.Resolve(Monster(mob), 200));
+        }
+
+        [TestMethod]
+        public void ABasicSkillColumnThatHappensToNameASkillIsNotUsedAsOne()
+        {
+            var mob = new NpcMonsterDto { NpcMonsterVNum = 7, BasicSkill = 200, BasicRange = 2 };
+            var resolver = ResolverForAMonsterWith(mob);
+
+            var basic = resolver.Resolve(Monster(mob), 0)!;
+
+            Assert.AreEqual((short)0, basic.SkillVnum);
+            Assert.AreEqual((byte)2, basic.Range);
+        }
     }
 }

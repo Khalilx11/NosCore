@@ -185,7 +185,6 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
         var npcMonster = entity.NpcMonster!;
         return new ChosenSkill(
             SkillVnum: 0,
-            CastId: 0,
             SkillRange: Math.Max(1, (int)npcMonster.BasicRange),
             CooldownMs: Math.Max(200, npcMonster.BasicCooldown * 100));
     }
@@ -299,7 +298,6 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
             }
             return new ChosenSkill(
                 SkillVnum: dto.SkillVNum,
-                CastId: dto.CastId,
                 SkillRange: Math.Max(1, (int)dto.Range),
                 CooldownMs: Math.Max(200, dto.Cooldown * 100));
         }
@@ -320,7 +318,7 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
             return;
         }
 
-        var accepted = await battleService.Hit(entity, target, new HitArguments { SkillId = skill.CastId });
+        var accepted = await battleService.Hit(entity, target, new HitArguments { SkillId = skill.SkillVnum });
 
         if (accepted && cooldowns != null)
         {
@@ -373,5 +371,5 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
     // stays cheap to copy in concurrent tick scenarios.
     private sealed record CachedPath(short TargetX, short TargetY, List<(short X, short Y)> Path, Instant LastStepAt);
 
-    private sealed record ChosenSkill(short SkillVnum, long CastId, int SkillRange, int CooldownMs);
+    private sealed record ChosenSkill(short SkillVnum, int SkillRange, int CooldownMs);
 }

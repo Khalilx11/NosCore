@@ -217,6 +217,52 @@ namespace NosCore.GameObject.Tests.Services.BattleService
             Assert.IsFalse(await _ai.TickAsync(monster));
         }
 
+        private MonsterAi AiThatRollsTheSkill()
+        {
+            var catalog = new Mock<INpcCombatCatalog>();
+            catalog.Setup(c => c.GetSkills(1)).Returns(new List<NpcMonsterSkillDto>
+            {
+                new() { NpcMonsterVNum = 1, SkillVNum = 55 },
+            });
+            var random = new Mock<IRandomProvider>();
+            random.Setup(r => r.Next(0, 10)).Returns(9);
+
+            return new MonsterAi(
+                _battle.Object,
+                _aggro,
+                new GameObject.Services.PathfindingService.PathfindingService(TestHelpers.Instance.DistanceCalculator),
+                TestHelpers.Instance.SessionRegistry,
+                TestHelpers.Instance.DistanceCalculator,
+                catalog.Object,
+                random.Object,
+                TestHelpers.Instance.Clock,
+                new Dictionary<short, SkillDto> { [55] = new() { SkillVNum = 55, CastId = 0, Range = 3, Cooldown = 20 } },
+                NullLogger<MonsterAi>.Instance);
+        }
+
+        [TestMethod]
+        public async Task ARolledSkillIsCastByItsVnumFromItsOwnReach()
+        {
+            var monster = SpawnMonster(4, 1);
+            PlacePlayer(4, 3);
+
+            await AiThatRollsTheSkill().TickAsync(monster);
+
+            _battle.Verify(b => b.Hit(It.IsAny<IAliveEntity>(), It.IsAny<IAliveEntity>(),
+                It.Is<HitArguments>(a => a.SkillId == 55)), Times.Once);
+        }
+
+        [TestMethod]
+        public async Task TheBasicAttackIsCastAsVnumZero()
+        {
+            var monster = SpawnMonster(4, 1);
+            PlacePlayer(4, 2);
+
+            await _ai.TickAsync(monster);
+
+            SwingsAtThePlayer(Times.Once());
+        }
+
         [TestMethod]
         public async Task AHostileMonsterDoesNotNoticeAPlayerStandingWhereMonsterAggroIsDisabled()
         {
