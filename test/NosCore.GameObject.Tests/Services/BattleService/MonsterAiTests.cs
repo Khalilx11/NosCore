@@ -218,6 +218,32 @@ namespace NosCore.GameObject.Tests.Services.BattleService
         }
 
         [TestMethod]
+        public async Task AHostileMonsterDoesNotNoticeAPlayerStandingWhereMonsterAggroIsDisabled()
+        {
+            var monster = SpawnMonster(4, 1);
+            PlacePlayer(4, 2);
+            _map.Map.Data[4 + 2 * 8 + 4] = 8;
+
+            var acted = await _ai.TickAsync(monster);
+
+            Assert.IsFalse(acted);
+            SwingsAtThePlayer(Times.Never());
+        }
+
+        [TestMethod]
+        public async Task AHostileMonsterNoticesThePlayerOnceItLeavesThatCell()
+        {
+            var monster = SpawnMonster(4, 1);
+            _map.Map.Data[4 + 2 * 8 + 4] = 8;
+            PlacePlayer(4, 2);
+            Assert.IsFalse(await _ai.TickAsync(monster));
+
+            PlacePlayer(4, 3);
+
+            Assert.IsTrue(await _ai.TickAsync(monster));
+        }
+
+        [TestMethod]
         public async Task ADeadMonsterDoesNothing()
         {
             var monster = SpawnMonster(4, 1);

@@ -42,6 +42,60 @@ namespace NosCore.GameObject.Tests
             Assert.IsFalse(map.IsWalkable(0, -1));
         }
 
+        // Every value the imported client maps contain, by whether the walking-disabled bit is set.
+        [DataTestMethod]
+        [DataRow(0, true)]
+        [DataRow(2, true)]
+        [DataRow(8, true)]
+        [DataRow(10, true)]
+        [DataRow(12, true)]
+        [DataRow(14, true)]
+        [DataRow(16, true)]
+        [DataRow(18, true)]
+        [DataRow(30, true)]
+        [DataRow(1, false)]
+        [DataRow(3, false)]
+        [DataRow(7, false)]
+        [DataRow(9, false)]
+        [DataRow(11, false)]
+        [DataRow(13, false)]
+        [DataRow(15, false)]
+        [DataRow(17, false)]
+        [DataRow(19, false)]
+        [DataRow(31, false)]
+        public void ACellIsWalkableUnlessItsWalkingDisabledBitIsSet(int cell, bool walkable)
+        {
+            var map = OpenMap(2, 1);
+            map.Data[4] = (byte)cell;
+
+            Assert.AreEqual(walkable, map.IsWalkable(0, 0));
+        }
+
+        [DataTestMethod]
+        [DataRow(8, true)]
+        [DataRow(9, true)]
+        [DataRow(10, true)]
+        [DataRow(11, true)]
+        [DataRow(31, true)]
+        [DataRow(0, false)]
+        [DataRow(1, false)]
+        [DataRow(2, false)]
+        [DataRow(16, false)]
+        [DataRow(17, false)]
+        public void ACellDisablesMonsterAggroWhenItsAggroBitIsSet(int cell, bool disabled)
+        {
+            var map = OpenMap(2, 1);
+            map.Data[4] = (byte)cell;
+
+            Assert.AreEqual(disabled, map.IsMonsterAggroDisabled(0, 0));
+        }
+
+        [TestMethod]
+        public void ACellPastTheEdgeNeverDisablesAggro()
+        {
+            Assert.IsFalse(OpenMap(2, 1).IsMonsterAggroDisabled(2, 0));
+        }
+
         [TestMethod]
         public void ThePathfinderStaysOnAMapWhoseEdgeIsOpen()
         {

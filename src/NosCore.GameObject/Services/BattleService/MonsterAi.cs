@@ -193,7 +193,7 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
     // Returns the closest qualifying enemy within NoticeRange. Two-faction rule:
     // NPCs and players are on one side, monsters on the other. NPCs scan the
     // monster pool; monsters scan both players and NPCs and just take the closest,
-    // no player preference.
+    // no player preference. Nobody standing on a cell that disables monster aggro is noticed.
     private IAliveEntity? DetectNearbyEnemy(INonPlayableEntity entity)
     {
         var map = entity.MapInstance;
@@ -225,7 +225,7 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
         {
             if (!session.HasPlayerEntity) continue;
             var player = session.Character;
-            if (!player.IsAlive) continue;
+            if (!player.IsAlive || map.Map.IsMonsterAggroDisabled(player.PositionX, player.PositionY)) continue;
             var d = distanceCalculator.GetDistance(
                 (entity.PositionX, entity.PositionY),
                 (player.PositionX, player.PositionY));
@@ -238,7 +238,7 @@ public sealed class MonsterAi : IMonsterAi, ISingletonService
         }
         foreach (var npc in map.EnumerateNpcs())
         {
-            if (!npc.IsAlive || npc.NpcMonster == null) continue;
+            if (!npc.IsAlive || npc.NpcMonster == null || map.Map.IsMonsterAggroDisabled(npc.PositionX, npc.PositionY)) continue;
             var d = distanceCalculator.GetDistance(
                 (entity.PositionX, entity.PositionY),
                 (npc.PositionX, npc.PositionY));
