@@ -84,7 +84,7 @@ public sealed class DamageCalculator(IRandomProvider random) : IDamageCalculator
         // gives a positive bias when attacker out-levels and damp when under-levelled.
         var baseDamage = RollBaseDamage(context.MainMinDmg, context.MainMaxDmg);
         baseDamage += morale - defender.Level;
-        if (attacker.Class == CharacterClassType.Adventurer)
+        if (attacker.Class == CharacterClassType.Adventurer && !attacker.IsMonster)
         {
             // Historic Adventurer flat bonus (they have otherwise weak primary stats).
             baseDamage += 20;

@@ -59,4 +59,6 @@ public readonly record struct CombatStats(
     int EnemyDarkResistance = 0,
     // Type 16: overrides of the ordinary dodge roll, both as a percentage.
     int GuaranteedHitChance = 0,
-    int GuaranteedDodgeChance = 0);
+    int GuaranteedDodgeChance = 0,
+    // A monster has no class: Class holds a placeholder there and the class-keyed rules must skip it.
+    bool IsMonster = false);

@@ -82,7 +82,7 @@ public sealed class BattleStatsProvider(
     private static CombatStats FromMonster(NpcMonsterDto mob, byte level, byte heroLevel) => new(
         Level: level,
         HeroLevel: heroLevel,
-        Class: CharacterClassType.Adventurer, // monsters use skill.Type directly; class is unused for mobs
+        Class: CharacterClassType.Adventurer,
         Morale: level,
         MinHit: mob.DamageMinimum,
         MaxHit: mob.DamageMaximum,
@@ -110,7 +110,8 @@ public sealed class BattleStatsProvider(
         FireResistance: mob.FireResistance,
         WaterResistance: mob.WaterResistance,
         LightResistance: mob.LightResistance,
-        DarkResistance: mob.DarkResistance);
+        DarkResistance: mob.DarkResistance,
+        IsMonster: true);
 
     // The class and level give the base; whatever CombatComponent already carries can only raise it.
     private CombatStats FromCharacter(ICharacterEntity character)

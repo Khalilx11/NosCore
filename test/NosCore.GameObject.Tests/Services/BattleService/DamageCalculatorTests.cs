@@ -157,6 +157,20 @@ namespace NosCore.GameObject.Tests.Services.BattleService
             Assert.IsTrue(adv.Damage > sword.Damage, $"Adventurer bonus should beat Swordsman baseline: {adv.Damage} vs {sword.Damage}");
         }
 
+        [TestMethod]
+        public void AMonsterDoesNotGetTheAdventurerBonus()
+        {
+            var attacker = StatsBuilder.Default() with { HitRate = 100, MinHit = 60, MaxHit = 60 };
+            var defender = StatsBuilder.Default() with { Level = 10, Defence = 20 };
+            var character = new DamageCalculator(Rng(doubles: new[] { 1.0, 1.0 }, ints: new[] { 60 }).Object)
+                .Calculate(attacker, defender, MeleeSkill);
+            var monster = new DamageCalculator(Rng(doubles: new[] { 1.0, 1.0 }, ints: new[] { 60 }).Object)
+                .Calculate(attacker with { IsMonster = true }, defender, MeleeSkill);
+
+            Assert.AreEqual(60 + 10 - 10 - 20, monster.Damage);
+            Assert.AreEqual(monster.Damage + 20, character.Damage);
+        }
+
         private static class StatsBuilder
         {
             // Sane defaults that produce a hit at parity under the cubic dodge curve
