@@ -1,4 +1,4 @@
-﻿//  __  _  __    __   ___ __  ___ ___
+//  __  _  __    __   ___ __  ___ ___
 // |  \| |/__\ /' _/ / _//__\| _ \ __|
 // | | ' | \/ |`._`.| \_| \/ | v / _|
 // |_|\__|\__/ |___/ \__/\__/|_|_\___|
@@ -18,12 +18,13 @@ using NosCore.GameObject.Services.BattleService.Model;
 
 namespace NosCore.GameObject.Services.BattleService;
 
-// Builds CombatStats from the underlying ECS components. Players synthesise their
-// "base" profile from level+class (matching OpenNos CharacterHelper), then add the worn
-// equipment and fold in every active effect. Monsters read straight from NpcMonsterDto.
+// Builds CombatStats from the underlying ECS components. Players start from their class and
+// level profile (ICharacterStatsCatalog), then add the worn equipment and fold in every active
+// effect. Monsters read straight from NpcMonsterDto.
 public sealed class BattleStatsProvider(
     IBuffService buffService,
-    EquipmentService.IEquipmentStatsService equipmentStatsService) : IBattleStatsProvider
+    EquipmentService.IEquipmentStatsService equipmentStatsService,
+    ICharacterStatsCatalog characterStats) : IBattleStatsProvider
 {
     public CombatStats GetStats(IAliveEntity entity)
     {
@@ -71,7 +72,7 @@ public sealed class BattleStatsProvider(
             DarkResistance = stats.DarkResistance + gear.DarkResistance,
         };
 
-    private static CombatStats ResolveBaseStats(IAliveEntity entity) => entity switch
+    private CombatStats ResolveBaseStats(IAliveEntity entity) => entity switch
     {
         INonPlayableEntity npc => FromMonster(npc.NpcMonster, entity.Level, entity.HeroLevel),
         ICharacterEntity character => FromCharacter(character),
@@ -111,75 +112,41 @@ public sealed class BattleStatsProvider(
         LightResistance: mob.LightResistance,
         DarkResistance: mob.DarkResistance);
 
-    private static CombatStats FromCharacter(ICharacterEntity character)
+    // The class and level give the base; whatever CombatComponent already carries can only raise it.
+    private CombatStats FromCharacter(ICharacterEntity character)
     {
         var level = character.Level;
         var cls = character.Class;
         var combat = ReadCombat(character);
-
-        // CharacterHelper base tables: level+class formulas used when the inventory
-        // system hasn't populated CombatComponent yet (fresh char, test fixtures).
-        // Numbers lifted from OpenNos CharacterHelper.LoadStats for parity.
-        var baseMinHit = cls switch
-        {
-            CharacterClassType.Swordsman => 2 * level + 5,
-            CharacterClassType.Mage => 2 * level + 9,
-            CharacterClassType.Archer => 9 + 3 * level,
-            _ => 2 * level + 2,
-        };
-        var baseMaxHit = baseMinHit;
-        var baseHitRate = cls switch
-        {
-            CharacterClassType.Swordsman => level + 27,
-            CharacterClassType.Mage => 24 + level,
-            CharacterClassType.Archer => 20 + 2 * level,
-            _ => level + 10,
-        };
-        var baseDefence = cls switch
-        {
-            CharacterClassType.Swordsman => level + 2,
-            CharacterClassType.Mage => level,
-            CharacterClassType.Archer => level,
-            _ => level,
-        };
-        var baseMagicDefence = cls switch
-        {
-            CharacterClassType.Mage => level + 4,
-            _ => level,
-        };
-        var baseDodge = cls switch
-        {
-            CharacterClassType.Mage => 24 + level,
-            _ => level + 12,
-        };
+        var basis = characterStats.Get(cls, level);
 
         return new CombatStats(
             Level: level,
             HeroLevel: character.HeroLevel,
             Class: cls,
-            Morale: level, // OpenNos morale is Level + MoraleUp buffs; buffs added later
-            MinHit: Math.Max(baseMinHit, combat.MinHit),
-            MaxHit: Math.Max(baseMaxHit, combat.MaxHit),
-            HitRate: combat.HitRate > 0 ? combat.HitRate : baseHitRate,
+            Morale: level,
+            MinHit: Math.Max(basis.MinHit, combat.MinHit),
+            MaxHit: Math.Max(basis.MaxHit, combat.MaxHit),
+            HitRate: combat.HitRate > 0 ? combat.HitRate : basis.HitRate,
             CriticalChance: combat.CriticalChance,
             CriticalRate: combat.CriticalRate,
             MeleeUpgrade: 0,
-            MinDistance: Math.Max(baseMinHit, combat.MinDistance),
-            MaxDistance: Math.Max(baseMaxHit, combat.MaxDistance),
-            DistanceRate: combat.DistanceRate > 0 ? combat.DistanceRate : baseHitRate,
+            MinDistance: Math.Max(basis.MinDistance, combat.MinDistance),
+            MaxDistance: Math.Max(basis.MaxDistance, combat.MaxDistance),
+            DistanceRate: combat.DistanceRate > 0 ? combat.DistanceRate : basis.DistanceRate,
             DistanceCriticalChance: combat.DistanceCriticalChance,
             DistanceCriticalRate: combat.DistanceCriticalRate,
             RangedUpgrade: 0,
             Element: (byte)combat.Element,
             ElementRate: combat.ElementRate,
             ElementRateSp: 0,
-            Defence: combat.Defence > 0 ? combat.Defence : baseDefence,
+            Defence: combat.Defence > 0 ? combat.Defence : basis.Defence,
             DefenceRate: combat.DefenceRate,
-            DistanceDefence: combat.DistanceDefence > 0 ? combat.DistanceDefence : baseDefence,
+            DistanceDefence: combat.DistanceDefence > 0 ? combat.DistanceDefence : basis.DistanceDefence,
             DistanceDefenceRate: combat.DistanceDefenceRate,
-            MagicDefence: combat.MagicDefence > 0 ? combat.MagicDefence : baseMagicDefence,
-            DefenceDodge: combat.DefenceRate > 0 ? combat.DefenceRate : baseDodge,
-            DistanceDefenceDodge: combat.DistanceDefenceRate > 0 ? combat.DistanceDefenceRate : baseDodge,
+            MagicDefence: combat.MagicDefence > 0 ? combat.MagicDefence : basis.MagicDefence,
+            DefenceDodge: combat.DefenceRate > 0 ? combat.DefenceRate : basis.DefenceDodge,
+            DistanceDefenceDodge: combat.DistanceDefenceRate > 0 ? combat.DistanceDefenceRate : basis.DistanceDefenceDodge,
             DefenceUpgrade: 0,
             FireResistance: combat.FireResistance,
             WaterResistance: combat.WaterResistance,

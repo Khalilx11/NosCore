@@ -63,7 +63,7 @@ namespace NosCore.GameObject.Tests.Services.BattleService
                     StartedAt: Instant.MinValue, ExpiresAt: Instant.MaxValue, BCards: bCards)
             });
 
-            return new BattleStatsProvider(buffs.Object, NoEquipment()).GetStats(entity.Object);
+            return new BattleStatsProvider(buffs.Object, NoEquipment(), CharacterStatsFixture.Catalog()).GetStats(entity.Object);
         }
 
         private static IEquipmentStatsService NoEquipment()

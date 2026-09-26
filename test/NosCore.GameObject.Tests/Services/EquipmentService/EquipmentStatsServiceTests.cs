@@ -238,7 +238,7 @@ namespace NosCore.GameObject.Tests.Services.EquipmentService
             var buffs = new Mock<IBuffService>();
             buffs.Setup(b => b.GetActiveBuffs(It.IsAny<IAliveEntity>()))
                 .Returns(new List<BuffInstance>());
-            var provider = new BattleStatsProvider(buffs.Object, _service);
+            var provider = new BattleStatsProvider(buffs.Object, _service, Services.BattleService.CharacterStatsFixture.Catalog());
 
             var bare = provider.GetStats(_session.Character).Defence;
             Wear(EquipmentType.Gloves, EnchantedGlovesVnum);
