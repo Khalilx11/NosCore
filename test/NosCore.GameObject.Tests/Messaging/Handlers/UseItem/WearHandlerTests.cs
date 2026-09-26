@@ -37,6 +37,7 @@ namespace NosCore.GameObject.Tests.Messaging.Handlers.UseItem
         private ClientSession _session = null!;
         private WearHandler _handler = null!;
         private InventoryItemInstance _item = null!;
+        private Mock<NosCore.GameObject.Services.BattleService.ICharacterStatsService> _stats = null!;
 
         [TestInitialize]
         public async Task SetupAsync()
@@ -44,13 +45,43 @@ namespace NosCore.GameObject.Tests.Messaging.Handlers.UseItem
             await TestHelpers.ResetAsync();
             _session = await TestHelpers.Instance.GenerateSessionAsync();
             _session.Character.MapInstance = TestHelpers.Instance.MapInstanceAccessorService.GetBaseMapById(1)!;
+            _stats = new Mock<NosCore.GameObject.Services.BattleService.ICharacterStatsService>();
             _handler = new WearHandler(
                 new Mock<ILogger<WearHandler>>().Object,
                 TestHelpers.Instance.Clock,
                 TestHelpers.Instance.LogLanguageLocalizer,
                 TestHelpers.Instance.WorldConfiguration,
                 new Mock<NosCore.GameObject.Services.BattleService.IVitalityService>().Object,
-                new Mock<NosCore.GameObject.Services.BattleService.ICharacterStatsService>().Object);
+                _stats.Object);
+        }
+
+        [TestMethod]
+        public async Task WearingAnItemSendsTheStatsWindow()
+        {
+            await new Spec("A successful equip sends the character its new stats")
+                .Given(ItemInInventoryOfType_, ItemType.Armor)
+                .And(CharacterIsLevel_, (byte)50)
+                .WhenAsync(UsingTheItemWithMode_, (byte)1)
+                .Then(StatsShouldHaveBeenSent_, 1)
+                .ExecuteAsync();
+        }
+
+        [TestMethod]
+        public async Task ARejectedItemDoesNotSendTheStatsWindow()
+        {
+            await new Spec("A rejected equip leaves the stats alone")
+                .Given(ItemInInventoryOfType_, ItemType.Armor)
+                .And(ItemRequiresLevel_, (byte)80)
+                .And(CharacterIsLevel_, (byte)20)
+                .WhenAsync(UsingTheItem)
+                .Then(StatsShouldHaveBeenSent_, 0)
+                .ExecuteAsync();
+        }
+
+        private void StatsShouldHaveBeenSent_(int times)
+        {
+            var character = _session.Character;
+            _stats.Verify(s => s.SendAsync(character), Times.Exactly(times));
         }
 
         [TestMethod]

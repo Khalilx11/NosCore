@@ -25,13 +25,42 @@ namespace NosCore.PacketHandlers.Tests.Inventory
     public class RemovePacketHandlerTests : SpecBase
     {
         private RemovePacketHandler RemovePacketHandler = null!;
+        private Mock<NosCore.GameObject.Services.BattleService.ICharacterStatsService> Stats = null!;
 
         [TestInitialize]
         public override async Task SetupAsync()
         {
             await base.SetupAsync();
+            Stats = new Mock<NosCore.GameObject.Services.BattleService.ICharacterStatsService>();
             RemovePacketHandler = new RemovePacketHandler(new Mock<NosCore.GameObject.Services.BattleService.IVitalityService>().Object,
-                new Mock<NosCore.GameObject.Services.BattleService.ICharacterStatsService>().Object);
+                Stats.Object);
+        }
+
+        [TestMethod]
+        public async Task RemovingEquippedItemShouldSendTheStatsWindow()
+        {
+            await new Spec("Removing an equipped item sends the character its new stats")
+                .Given(CharacterHasWeaponEquipped)
+                .WhenAsync(RemovingMainWeapon)
+                .Then(StatsShouldHaveBeenSent_, 1)
+                .ExecuteAsync();
+        }
+
+        [TestMethod]
+        public async Task ARefusedRemovalShouldNotSendTheStatsWindow()
+        {
+            await new Spec("A removal refused for lack of space leaves the stats alone")
+                .Given(CharacterHasWeaponEquipped)
+                .And(EquipmentInventoryIsFull)
+                .WhenAsync(RemovingMainWeapon)
+                .Then(StatsShouldHaveBeenSent_, 0)
+                .ExecuteAsync();
+        }
+
+        private void StatsShouldHaveBeenSent_(int times)
+        {
+            var character = Session.Character;
+            Stats.Verify(s => s.SendAsync(character), Times.Exactly(times));
         }
 
         [TestMethod]
