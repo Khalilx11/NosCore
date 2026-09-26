@@ -214,6 +214,20 @@ monsters do not start a fight on their own.
 - [ ] Try to wear an item for another class: that one still says wrong class
 - [ ] `$SetJobLevel` above the requirement, then equip — it succeeds
 
+### Equipment swaps survive a relog
+
+Wearing a piece over one already in the slot trades the two rows' slots. The save has to
+write both without any moment where two rows hold the same slot.
+
+- [ ] Carry two pieces for the same slot, wear one, then wear the other over it: the first
+      is back in the bag on the slot the second came from
+- [ ] Log out and back in: the second is still worn and the first is still in the bag
+- [ ] Wear them over each other three or four times in one session, then log out and back
+      in: whichever was worn last is still worn, and nothing is missing or doubled in the bag
+- [ ] Swap in two slots (a weapon and an armour) before logging out: both swaps are kept
+- [ ] Drag two bag items onto each other, then log out and back in: they are still swapped
+- [ ] The world log shows no "batch failed" line for the inventory at logout
+
 ---
 
 ## Regression sweep
@@ -250,6 +264,3 @@ Recorded so nobody spends time hunting for them:
   be learned and there is nothing to cast.
 - **Where monsters stand outside Map 1** — the client data does not hold placement, so
   there is nothing to walk to.
-- **Wearing a piece over an occupied slot, then logging out** — known to lose the swap:
-  the logout save of the two swapped rows fails. Log out between two separate wear
-  actions to avoid it while testing.

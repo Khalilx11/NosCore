@@ -30,12 +30,13 @@ using System.Threading.Tasks;
 namespace NosCore.GameObject.Tests.Services.SaveService
 {
     [TestClass]
-    public class SaveServiceTests
+    public partial class SaveServiceTests
     {
         private ClientSession Session = null!;
         private ISaveService Service = null!;
         private IItemGenerationService ItemProvider = null!;
         private IDao<CharacterQuestObjectiveDto, Guid> CharacterQuestObjectiveDao = null!;
+        private IDao<InventoryItemInstanceDto, Guid> InventoryDao = null!;
 
         [TestInitialize]
         public async Task SetupAsync()
@@ -44,12 +45,13 @@ namespace NosCore.GameObject.Tests.Services.SaveService
             Session = await TestHelpers.Instance.GenerateSessionAsync();
             ItemProvider = TestHelpers.Instance.GenerateItemProvider();
 
-            var optionsBuilder = new DbContextOptionsBuilder<NosCoreContext>().UseInMemoryDatabase(
-                Guid.NewGuid().ToString());
+            var optionsBuilder = UniqueSlotIndex.Enforced(new DbContextOptionsBuilder<NosCoreContext>().UseInMemoryDatabase(
+                Guid.NewGuid().ToString()));
             NosCoreContext ContextBuilder() => new NosCoreContext(optionsBuilder.Options);
 
             var itemInstanceDao = new Dao<ItemInstance, IItemInstanceDto?, Guid>(NullLogger<Dao<ItemInstance, IItemInstanceDto?, Guid>>.Instance, ContextBuilder);
-            var inventoryItemInstanceDao = new Dao<Database.Entities.InventoryItemInstance, InventoryItemInstanceDto, Guid>(NullLogger<Dao<Database.Entities.InventoryItemInstance, InventoryItemInstanceDto, Guid>>.Instance, ContextBuilder);
+            var inventoryItemInstanceDao = new Database.Persistence.InventoryItemInstanceDao(NullLogger<Dao<Database.Entities.InventoryItemInstance, InventoryItemInstanceDto, Guid>>.Instance, ContextBuilder);
+            InventoryDao = inventoryItemInstanceDao;
             var staticBonusDao = new Dao<StaticBonus, StaticBonusDto, long>(NullLogger<Dao<StaticBonus, StaticBonusDto, long>>.Instance, ContextBuilder);
             var quicklistEntriesDao = new Dao<QuicklistEntry, QuicklistEntryDto, Guid>(NullLogger<Dao<QuicklistEntry, QuicklistEntryDto, Guid>>.Instance, ContextBuilder);
             var titleDao = new Dao<Title, TitleDto, Guid>(NullLogger<Dao<Title, TitleDto, Guid>>.Instance, ContextBuilder);

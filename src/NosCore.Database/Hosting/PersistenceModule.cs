@@ -20,6 +20,7 @@ using NosCore.Data.Dto;
 using NosCore.Data.Enumerations.I18N;
 using NosCore.Data.StaticEntities;
 using NosCore.Database.Entities;
+using NosCore.Database.Persistence;
 using NosCore.Shared.Enumerations;
 using NosCore.Shared.I18N;
 using Microsoft.Extensions.Logging;
@@ -85,7 +86,7 @@ public sealed class PersistenceModule : Autofac.Module
 
         foreach (var mapping in DiscoverDaoMappings())
         {
-            var daoType = typeof(Dao<,,>).MakeGenericType(mapping.DbType, mapping.DtoType, mapping.PkType);
+            var daoType = DaoTypeFor(mapping.DbType, mapping.DtoType, mapping.PkType);
             var idaoType = typeof(IDao<,>).MakeGenericType(mapping.DtoType, mapping.PkType);
             services.AddSingleton(idaoType, daoType);
             if (mapping.IsStatic)
@@ -146,11 +147,16 @@ public sealed class PersistenceModule : Autofac.Module
         }
     }
 
+    public static Type DaoTypeFor(Type dbType, Type dtoType, Type pkType) =>
+        dbType == typeof(InventoryItemInstance)
+            ? typeof(InventoryItemInstanceDao)
+            : typeof(Dao<,,>).MakeGenericType(dbType, dtoType, pkType);
+
     public static void RegisterDatabaseObject<TDto, TDb, TPk>(ContainerBuilder builder, bool isStatic)
         where TDb : class
         where TPk : struct
     {
-        builder.RegisterType<Dao<TDb, TDto, TPk>>().As<IDao<IDto>>().As<IDao<TDto, TPk>>().SingleInstance();
+        builder.RegisterType(DaoTypeFor(typeof(TDb), typeof(TDto), typeof(TPk))).As<IDao<IDto>>().As<IDao<TDto, TPk>>().SingleInstance();
         if (!isStatic)
         {
             return;
