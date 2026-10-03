@@ -245,14 +245,28 @@ public static class PlayerBundleExtensions
                 FairyBooster = false,
                 FairyMorph = 0,
                 ShowInEffect = false,
-                Morph = 0,
+                // M33.6: Morph/MorphUpgrade are the same live transformation state CModePacket already
+                // broadcasts on activation (TransformationService.ChangeSpAsync/ChangeVehicleAsync set
+                // character.Morph/MorphUpgrade; GenerateCMode already reads them this way) - previously
+                // hard-coded to 0 here, so a player who was ALREADY transformed before another player's
+                // client first observed them via this "in" packet rendered as untransformed until the next
+                // live cmode broadcast. MorphUpgrade2 is left at 0: no code anywhere in this repo ever
+                // reads or writes it, so there is no evidence for what value it should carry.
+                //
+                // InCharacterSubPacket.Morph is byte, narrower than character.Morph's own short - clamped to
+                // 0..255 rather than cast directly: Item.dat rows CAN carry a negative Morph (M33.1.3's own
+                // forensics, on an unrelated Fashion row with no design recorded), and an unchecked (byte)
+                // cast would wrap an out-of-range value into an unrelated, misleadingly valid small byte
+                // instead of the "no transformation" state it actually means - the same 0..255 band
+                // PlayerVisualRenderer.Create's own client-side SpecialistMorph consumer already requires.
+                Morph = (byte)Math.Clamp((int)player.Morph, 0, 255),
                 WeaponUpgradeRareSubPacket = player.GetWeaponUpgradeRareSubPacket(),
                 ArmorUpgradeRareSubPacket = player.GetArmorUpgradeRareSubPacket(),
                 FamilySubPacket = new FamilySubPacket(),
                 FamilyName = null,
                 ReputIco = GetIcon(player),
                 Invisible = false,
-                MorphUpgrade = 0,
+                MorphUpgrade = player.MorphUpgrade,
                 Faction = 0,
                 MorphUpgrade2 = 0,
                 Level = player.Level,
@@ -444,10 +458,15 @@ public static class PlayerBundleExtensions
             Class = player.Class,
             Icon = GetIcon(player),
             Compliment = (short)(player.Authority == AuthorityType.Moderator ? 500 : player.Compliment),
-            Morph = 0,
+            // M33.6: same live transformation state as GenerateIn's own fix just above - see its comment.
+            // This packet is self-only (sent to the player about themselves on map re-entry/class change,
+            // immediately followed by a real GenerateCMode in MapChangeService's own call sequence), so
+            // this specifically keeps CInfoPacket's own Morph/MorphUpgrade consistent with CModePacket's
+            // rather than momentarily zeroing them between the two packets.
+            Morph = player.Morph,
             Invisible = false,
             FamilyLevel = 0,
-            MorphUpgrade = 0,
+            MorphUpgrade = player.MorphUpgrade,
             ArenaWinner = false
         };
     }
