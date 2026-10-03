@@ -43,6 +43,31 @@ namespace NosCore.GameObject.Messaging.Handlers.Battle
             if (evt.Victim.VisualType != VisualType.Player) return;
             if (evt.Victim is not PlayerComponentBundle player) return;
 
+            if (evt.RevivalMode == RevivalMode.ResumeInPlace)
+            {
+                // The character was already dead when it was loaded (died, then
+                // disconnected before answering the dialog) - the penalty for this
+                // death was already applied the first time EntityDiedEvent fired, so
+                // re-running the normal body below would charge it a second time and
+                // re-send a dialog the player has no fresh reason to answer again.
+                // Just wake them up where they are.
+                try
+                {
+                    player.IsAlive = true;
+                    player.Hp = 1;
+                    player.Mp = 1;
+
+                    await player.SendPacketAsync(player.GenerateStat());
+                    await player.SendPacketAsync(player.GenerateFd());
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "PlayerRevivalHandler ResumeInPlace failed for {CharacterId}", player.CharacterId);
+                }
+
+                return;
+            }
+
             try
             {
                 player.IsAlive = false;

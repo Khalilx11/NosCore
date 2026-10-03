@@ -111,7 +111,7 @@ namespace NosCore.GameObject.Map
 
         public bool IsWalkable(short mapX, short mapY)
         {
-            if ((mapX > Width) || (mapX < 0) || (mapY > Height) || (mapY < 0))
+            if ((mapX >= Width) || (mapX < 0) || (mapY >= Height) || (mapY < 0))
             {
                 return false;
             }
@@ -119,9 +119,16 @@ namespace NosCore.GameObject.Map
             return IsWalkable(this[mapX, mapY]);
         }
 
+        // Bit 0 is the WALKING_DISABLED flag; every other bit (NosCoreGameClient's
+        // GameMap.IsWalkable carries the same check) is unrelated terrain/decoration
+        // data that happens to vary across cells. The old value-list check below
+        // ({0, 2, 16-19}) disagreed with this bit on 1,141 of the ~11.45M cells in the
+        // imported maps, each one a cell the server would silently reject a move onto
+        // (or off of) while the client's own grid allowed it, with nothing to tell the
+        // client a correction ever happened.
         private static bool IsWalkable(byte value)
         {
-            return (value == 0) || (value == 2) || ((value >= 16) && (value <= 19));
+            return (value & 0x01) == 0;
         }
     }
 }

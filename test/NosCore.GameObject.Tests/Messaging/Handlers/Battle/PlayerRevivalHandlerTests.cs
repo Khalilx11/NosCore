@@ -116,6 +116,20 @@ namespace NosCore.GameObject.Tests.Messaging.Handlers.Battle
                 .ExecuteAsync();
         }
 
+        [TestMethod]
+        public async Task ResumeInPlaceRefillsHpMpWithoutRepeatingThePenaltyOrDialog()
+        {
+            await new Spec("Resuming a character already persisted dead wakes it up without a second dignity hit or a fresh dialog")
+                .Given(CharacterHasHpMpAndDignity_, 0, 0, (short)-50)
+                .WhenAsync(PlayerResumesInPlace)
+                .Then(HpShouldBe_, 1)
+                .And(MpShouldBe_, 1)
+                .And(IsAliveShouldBe_, true)
+                .And(DignityShouldBe_, (short)-50)
+                .And(NoDialogShouldHaveBeenSent_)
+                .ExecuteAsync();
+        }
+
         private void CharacterHasHpMpAndDignity_(int hp, int mp, short dignity)
         {
             _session.Character.Hp = hp;
@@ -143,9 +157,19 @@ namespace NosCore.GameObject.Tests.Messaging.Handlers.Battle
             await _handler.Handle(new EntityDiedEvent(_session.Character, _killerSession.Character));
         }
 
+        private async Task PlayerResumesInPlace()
+        {
+            await _handler.Handle(new EntityDiedEvent(_session.Character, null, RevivalMode.ResumeInPlace));
+        }
+
         private void HpShouldBe_(int expected) => Assert.AreEqual(expected, _session.Character.Hp);
 
         private void MpShouldBe_(int expected) => Assert.AreEqual(expected, _session.Character.Mp);
+
+        private void IsAliveShouldBe_(bool expected) => Assert.AreEqual(expected, _session.Character.IsAlive);
+
+        private void NoDialogShouldHaveBeenSent_() =>
+            Assert.IsFalse(_session.LastPackets.OfType<DlgiPacket>().Any(), "resuming in place must not re-send a revive dialog");
 
         private void DignityShouldBe_(short expected) => Assert.AreEqual(expected, _session.Character.Dignity);
 
